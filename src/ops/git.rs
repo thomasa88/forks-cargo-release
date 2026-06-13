@@ -73,11 +73,31 @@ pub fn is_local_unchanged(dir: &Path, remote: &str, branch: &str) -> CargoResult
 }
 
 pub fn current_branch(dir: &Path) -> CargoResult<String> {
-    let repo = git2::Repository::discover(dir)?;
+    // let repo = git2::Repository::discover(dir)?;
 
-    let resolved = repo.head()?.resolve()?;
-    let name = resolved.shorthand().unwrap_or("HEAD");
-    Ok(name.to_owned())
+    // let resolved = repo.head()?.resolve()?;
+    // let name = resolved.shorthand().unwrap_or("HEAD");
+
+    let output = Command::new("jj")
+        .arg("-R")
+        .arg(dir)
+        .arg("log")
+        .arg("-G")
+        .arg("-T")
+        .arg(r#"local_bookmarks.map(|b| b.name()).join("\n")"#)
+        .arg("-r")
+        .arg("@-")
+        .output()?;
+    let output = String::from_utf8(output.stdout)?;
+    let bookmarks: Vec<_> = output.lines().collect();
+    if bookmarks.is_empty() {
+        return Err(anyhow::format_err!("no bookmarks at @-"));
+    } else if bookmarks.len() > 1 {
+        return Err(anyhow::format_err!(
+            "multiple bookmarks at @-: {bookmarks:?}"
+        ));
+    }
+    Ok(bookmarks[0].to_string())
 }
 
 pub fn is_dirty(dir: &Path) -> CargoResult<Option<Vec<String>>> {
