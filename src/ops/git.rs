@@ -195,7 +195,13 @@ pub fn commit_all(dir: &Path, msg: &str, sign: bool, dry_run: bool) -> CargoResu
     } else {
         log::debug!("No files changed, skipping commit");
         Ok(true)
-    }
+    }?;
+
+    call_on_path(
+        vec!["jj", "bookmark", "move", "main", "--to", "@-"],
+        dir,
+        dry_run,
+    )
 }
 
 pub fn tag(dir: &Path, name: &str, msg: &str, sign: bool, dry_run: bool) -> CargoResult<bool> {
