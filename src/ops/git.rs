@@ -158,20 +158,40 @@ pub fn changed_files(dir: &Path, tag: &str) -> CargoResult<Option<Vec<PathBuf>>>
 }
 
 pub fn commit_all(dir: &Path, msg: &str, sign: bool, dry_run: bool) -> CargoResult<bool> {
-    let repo = git2::Repository::discover(dir)?;
-    let mut options = git2::StatusOptions::new();
-    options
-        .show(git2::StatusShow::IndexAndWorkdir)
-        .include_untracked(true);
-    let statuses = repo.statuses(Some(&mut options))?;
-    let dirty_tree = !statuses.is_empty();
+    // let repo = git2::Repository::discover(dir)?;
+    // let mut options = git2::StatusOptions::new();
+    // options
+    //     .show(git2::StatusShow::IndexAndWorkdir)
+    //     .include_untracked(true);
+    // let statuses = repo.statuses(Some(&mut options))?;
+    // let dirty_tree = !statuses.is_empty();
+
+    // if dirty_tree || dry_run {
+    //     call_on_path(
+    //         vec!["git", "commit", if sign { "-S" } else { "" }, "-am", msg],
+    //         dir,
+    //         dry_run,
+    //     )
+    // } else {
+    //     log::debug!("No files changed, skipping commit");
+    //     Ok(true)
+    // }
+
+    let is_empty_output = Command::new("jj")
+        .arg("-R")
+        .arg(dir)
+        .arg("log")
+        .arg("-G")
+        .arg("-T")
+        .arg("empty")
+        .arg("-r")
+        .arg("@")
+        .output()?;
+    let is_empty_output = String::from_utf8(is_empty_output.stdout)?;
+    let dirty_tree = is_empty_output != "true";
 
     if dirty_tree || dry_run {
-        call_on_path(
-            vec!["git", "commit", if sign { "-S" } else { "" }, "-am", msg],
-            dir,
-            dry_run,
-        )
+        call_on_path(vec!["jj", "commit", "-m", msg], dir, dry_run)
     } else {
         log::debug!("No files changed, skipping commit");
         Ok(true)
