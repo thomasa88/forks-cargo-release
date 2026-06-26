@@ -212,7 +212,10 @@ pub fn tag(dir: &Path, name: &str, msg: &str, sign: bool, dry_run: bool) -> Carg
             cmd.push("-s");
         }
     }
-    call_on_path(cmd, dir, dry_run)
+    call_on_path(cmd, dir, dry_run)?;
+    // Update jj state. We could alternatively use `jj tag set`, but it does not
+    // yet support annotated tags.
+    call_on_path(vec!["jj", "st"], dir, dry_run)
 }
 
 pub fn tag_exists(dir: &Path, name: &str) -> CargoResult<bool> {
